@@ -1,3 +1,8 @@
 <?php
+require_once (__DIR__.'/crest.php');
 
-echo 'Hello World!';
+$result = CRest::call('profile');
+
+echo '<pre>';
+print_r($result);
+echo '</pre>';
