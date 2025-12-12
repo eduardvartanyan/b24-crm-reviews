@@ -26,20 +26,7 @@ if($result['rest_only'] === false):?>
                             'DESCRIPTION': {
                                 'ru': 'Действие генерирует и возвращает ссылки на отзывы для всех контактов сделки'
                             },
-                            'PROPERTIES': {
-                                'deal_id': {
-                                    'Name': {
-                                        'ru': 'ID сделки',
-                                    },
-                                    'Description': {
-                                        'ru': '',
-                                    },
-                                    'Type': 'string',
-                                    'Required': 'Y',
-                                    'Multiple': 'N',
-                                    'Default': '{{ID}}'
-                                }
-                            },
+                            'PROPERTIES': { },
                             'RETURN_PROPERTIES': {
                                 'link': {
                                     'Name': {
