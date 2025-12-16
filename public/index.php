@@ -27,9 +27,9 @@ try {
         case '/activities/getreviewlinks':
             if (
                 $method == 'POST'
-                && isset($_POST['document_id']) && is_array($_POST['document_id']) && count($_POST['document_id']) >= 3
+                && isset($_REQUEST['document_id']) && is_array($_REQUEST['document_id']) && count($_REQUEST['document_id']) >= 3
             ) {
-                $dealId = (int) str_replace('DEAL_', '', $_POST['document_id'][2]);
+                $dealId = (int) str_replace('DEAL_', '', $_REQUEST['document_id'][2]);
 
                 $linkService = $container->get(LinkService::class);
                 $b24Service  = $container->get(B24Service::class);
