@@ -3,34 +3,36 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Repositories\ClientRepository;
 use Exception;
 
-class LinkService
+readonly class LinkService
 {
-    public function __construct(private readonly B24Service $b24Service) { }
+    public function __construct(
+        private B24Service       $b24Service,
+        private ClientRepository $clientRepository,
+        private string           $formUrl
+    ) { }
 
-    public function getDealReviewLinks(int $dealId): ?array
+    public function getDealReviewLinks(int $dealId, string $domain): ?array
     {
         $contactIds = $this->b24Service->getDealContactIds($dealId);
+        $client = $this->clientRepository->findByDomain($domain);
 
-        $clientId = $_ENV['C_REST_CLIENT_ID'];
-        $link = $_ENV['VRT_FORM_URL'] . $_ENV['VRT_VENDOR_NAME'] . '/';
+        $link = $this->formUrl . $client['title'] . '/';
 
         $links = [];
         foreach ($contactIds as $contactId) {
-            $encoded = $this->encodeParams($clientId, $dealId, $contactId);
+            $encoded = $this->encodeParams($dealId, $contactId);
             $links[] = $link . $encoded . '/';
         }
 
         return $links;
     }
 
-    private function encodeParams(string $clientId, int $dealId, int $contactId): string
+    private function encodeParams(int $dealId, int $contactId): string
     {
-        $clientLen = strlen($clientId);
-
-        $payload  = chr($clientLen) . $clientId;
-        $payload .= pack('NN', $dealId, $contactId);
+        $payload = pack('NN', $dealId, $contactId);
 
         $nonce = random_bytes(4);
 
@@ -48,34 +50,42 @@ class LinkService
 
     private function decodeParams(string $encoded): array
     {
-        $encoded = strtr($encoded, '-_', '+/');
-        $encoded .= str_repeat('=', 4 - strlen($encoded) % 4);
-        $raw = base64_decode($encoded);
-
-        $nonce = substr($raw, 0, 4);
-        $hmac  = substr($raw, -8);
-        $cipher = substr($raw, 4, -8);
-
         $key = $_ENV['VRT_ENCODE_KEY'];
 
+        $data = base64_decode(strtr($encoded, '-_', '+/'), true);
+        if ($data === false) {
+            throw new \RuntimeException('Invalid base64 string');
+        }
+
+        $expectedLength = 4 + 8 + 8;
+
+        if (strlen($data) !== $expectedLength) {
+            throw new \RuntimeException('Invalid encoded payload length');
+        }
+
+        $nonce  = substr($data, 0, 4);
+        $cipher = substr($data, 4, 8);
+        $hmac   = substr($data, 12, 8);
+
         $calcHmac = substr(hash_hmac('sha256', $nonce . $cipher, $key, true), 0, 8);
+
         if (!hash_equals($hmac, $calcHmac)) {
-            throw new Exception("Invalid signature");
+            throw new \RuntimeException('Invalid HMAC: tampered or corrupt data');
         }
 
         $keystream = substr(hash('sha256', $key . $nonce, true), 0, strlen($cipher));
+
         $payload = $cipher ^ $keystream;
 
-        $clientLen = ord($payload[0]);
-        $clientId = substr($payload, 1, $clientLen);
+        $values = unpack('NdealId/NcontactId', $payload);
 
-        $rest = substr($payload, 1 + $clientLen);
-        $arr = unpack('Ndeal/Ncontact', $rest);
+        if (!$values) {
+            throw new \RuntimeException('Failed to unpack payload');
+        }
 
         return [
-            'clientId' => $clientId,
-            'dealId' => $arr['deal'],
-            'contactId' => $arr['contact'],
+            'dealId'    => $values['dealId'],
+            'contactId' => $values['contactId'],
         ];
     }
 }

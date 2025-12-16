@@ -35,7 +35,7 @@ try {
                 $linkService = $container->get(LinkService::class);
                 $b24Service  = $container->get(B24Service::class);
 
-                $dealReviewLinks = $linkService->getDealReviewLinks($dealId);
+                $dealReviewLinks = $linkService->getDealReviewLinks($dealId, $_REQUEST['auth']['domain']);
 
                 $url = $_REQUEST['auth']['client_endpoint'] . 'bizproc.event.send.json?' . http_build_query([
                     'auth' => $_REQUEST['auth']['access_token'],
