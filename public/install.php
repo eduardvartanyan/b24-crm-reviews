@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+use App\Repositories\ClientRepository;
+use App\Support\Container;
 use App\Support\CRest;
 use App\Support\Logger;
 
@@ -14,10 +16,34 @@ Logger::info('Установка приложения', [
     'result'  => $result,
 ]);
 
+$clientId = 0;
+if ($result['install'] && isset($_REQUEST['DOMAIN']) && isset($_REQUEST['APP_SID'])) {
+    /** @var Container $container */
+    $clientRepository = $container->get(ClientRepository::class);
+
+    $array = explode('.', $_REQUEST['DOMAIN']);
+
+    try {
+        // TODO: Добавить проверку на существование клиента по домену
+        $clientId = $clientRepository->create([
+            'domain'  => $_REQUEST['DOMAIN'],
+            'title'   => $array[0],
+            'app_sid' => $_REQUEST['APP_SID'],
+        ]);
+
+        Logger::info('Создан клиент в БД, id =' . $clientId);
+    } catch (Throwable $e) {
+        Logger::error('Клиента не создан в БД: ' . $e->getMessage(), [
+            'request' => $_REQUEST,
+            'result'  => $result
+        ]);
+    }
+}
+
 if ($result['rest_only'] === false):?>
     <head>
         <script src="//api.bitrix24.com/api/v1/"></script>
-        <?php if ($result['install']):?>
+        <?php if ($result['install'] && $clientId > 0):?>
             <script>
                 BX24.init(function() {
                     BX24.callMethod('user.current', {}, function(current_user) {
@@ -70,7 +96,7 @@ if ($result['rest_only'] === false):?>
         <?php endif;?>
     </head>
     <body>
-    <?php if ($result['install']):?>
+    <?php if ($result['install'] && $clientId > 0):?>
         Приложение успешно установлено
     <?php else:?>
         Во время установки приложения возникла ошибка

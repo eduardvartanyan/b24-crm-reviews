@@ -5,37 +5,37 @@ namespace App\Support;
 
 use PDO;
 use PDOException;
+use RuntimeException;
 
-class Database
+// psql -U crmreviews -d crmreviews -h localhost
+
+final class Database
 {
-    private PDO $connection;
+    private static ?PDO $pdo = null;
 
-    public function __construct($config)
+    public static function pdo(): PDO
     {
-        try {
-            $dsn = sprintf(
-                'pgsql:host=%s;port=%s;dbname=%s',
-                $config['host'],
-                $config['port'],
-                $config['dbname'],
-            );
+        if (self::$pdo === null) {
+            try {
+                $pdo = new PDO(
+                    $_ENV['DB_DSN'],
+                    $_ENV['DB_USER'],
+                    $_ENV['DB_PASSWORD'],
+                    [
+                        PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+                        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                        PDO::ATTR_EMULATE_PREPARES   => false,
+                    ]
+                );
+            } catch (PDOException $e) {
+                throw new RuntimeException(
+                    '[Database->pdo] Error connecting to the database: ' . $e->getMessage()
+                );
+            }
 
-            $this->connection = new PDO(
-                $dsn,
-                $config['user'],
-                $config['password'],
-                [
-                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                ]
-            );
-        } catch (PDOException $e) {
-            throw new \RuntimeException('Database connection failed: ' . $e->getMessage());
+            self::$pdo = $pdo;
         }
-    }
 
-    public function getConnection(): PDO
-    {
-        return $this->connection;
+        return self::$pdo;
     }
 }

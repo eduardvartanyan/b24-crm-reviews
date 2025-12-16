@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 
+use App\Repositories\ClientRepository;
 use App\Services\B24Service;
 use App\Services\LinkService;
 use App\Support\Container;
@@ -56,8 +57,13 @@ try {
         // https://crm-reviews.ru/r/forsite/AGCLKKjyprFI09iRISNaY8GbG3nLkV1hoNiVCjMYOMMMgi6uds_h-FUsNq8/
 
         case '/test':
-            $b24Service = $container->get(B24Service::class);
-            $b24Service->getDealContactIds(172176);
+            $clientRepository = $container->get(ClientRepository::class);
+            $clientId = $clientRepository->create([
+                'domain'  => 'fs911.bitrix24.ru',
+                'title'   => 'fs911',
+                'app_sid' => '9c450b47dcbed52fc541d68617879576',
+            ]);
+            echo $clientId;
             break;
     }
 } catch (Throwable $e) {
