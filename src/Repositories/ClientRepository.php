@@ -5,8 +5,8 @@ namespace App\Repositories;
 
 use App\Support\Database;
 use PDO;
+use PDOException;
 use RuntimeException;
-use Throwable;
 
 class ClientRepository
 {
@@ -33,8 +33,34 @@ class ClientRepository
             ]);
 
             return (int) $this->pdo->lastInsertId();
-        } catch (Throwable $e) {
-            throw new RuntimeException($e->getMessage());
+        } catch (PDOException $e) {
+            throw new RuntimeException(
+                '[ClientRepository->create] Error inserting into clients -> ' . $e->getMessage()
+            );
+        }
+    }
+
+    public function findByDomain(string $domain): ?array
+    {
+        if ($domain === '') return null;
+
+        try {
+            $stmt = $this->pdo->prepare(
+                "SELECT * FROM clients WHERE domain = :domain;"
+            );
+            $stmt->execute([
+                ':domain' => $domain,
+            ]);
+
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$result) return null;
+
+            return $result;
+        } catch (PDOException $e) {
+            throw new RuntimeException(
+                '[ClientRepository->findByDomain] Error selecting from clients -> ' . $e->getMessage()
+            );
         }
     }
 }

@@ -29,7 +29,7 @@ final class Database
                 );
             } catch (PDOException $e) {
                 throw new RuntimeException(
-                    '[Database->pdo] Error connecting to the database: ' . $e->getMessage()
+                    '[Database->pdo] Error connecting to the database -> ' . $e->getMessage()
                 );
             }
 

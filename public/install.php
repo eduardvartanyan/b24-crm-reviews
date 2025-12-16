@@ -24,19 +24,19 @@ if ($result['install'] && isset($_REQUEST['DOMAIN']) && isset($_REQUEST['APP_SID
     $array = explode('.', $_REQUEST['DOMAIN']);
 
     try {
-        // TODO: Добавить проверку на существование клиента по домену
-        $clientId = $clientRepository->create([
-            'domain'  => $_REQUEST['DOMAIN'],
-            'title'   => $array[0],
-            'app_sid' => $_REQUEST['APP_SID'],
-        ]);
+        $client = $clientRepository->findByDomain($_REQUEST['DOMAIN']);
 
-        Logger::info('Создан клиент в БД, id =' . $clientId);
+        if ($client) {
+            $clientId = $client['id'];
+        } else {
+            $clientId = $clientRepository->create([
+                'domain'  => $_REQUEST['DOMAIN'],
+                'title'   => $array[0],
+                'app_sid' => $_REQUEST['APP_SID'],
+            ]);
+        }
     } catch (Throwable $e) {
-        Logger::error('Клиента не создан в БД: ' . $e->getMessage(), [
-            'request' => $_REQUEST,
-            'result'  => $result
-        ]);
+        Logger::error('[install.php] Error adding client in DB -> ' . $e->getMessage());
     }
 }
 
