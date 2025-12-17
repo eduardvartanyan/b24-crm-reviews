@@ -31,7 +31,7 @@ if ($result['install'] && isset($_REQUEST['DOMAIN']) && isset($_REQUEST['APP_SID
         } else {
             $clientId = $clientRepository->create([
                 'domain'  => $_REQUEST['DOMAIN'],
-                'title'   => $array[0],
+                'code'   => $array[0],
                 'app_sid' => $_REQUEST['APP_SID'],
             ]);
         }

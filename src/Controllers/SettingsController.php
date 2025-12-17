@@ -19,7 +19,8 @@ class SettingsController
     {
         header('Content-Type: application/json; charset=utf-8');
 
-        $domain = $_REQUEST['DOMAIN'] ?? null;
+        $domain = $_REQUEST['domain'] ?? null;
+        $code   = trim($_REQUEST['code'] ?? '');
         $title  = trim($_REQUEST['title'] ?? '');
 
         if (!$domain) {
@@ -34,6 +35,13 @@ class SettingsController
             return;
         }
 
+        if ($code === '') {
+            http_response_code(400);
+            echo json_encode(['error' => 'Code is empty']);
+            return;
+        }
+
+        $this->clientRepository->updateCodeByDomain($domain, $code);
         $this->clientRepository->updateTitleByDomain($domain, $title);
 
         http_response_code(200);

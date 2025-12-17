@@ -19,7 +19,7 @@ readonly class LinkService
         $contactIds = $this->b24Service->getDealContactIds($dealId);
         $client = $this->clientRepository->getByDomain($domain);
 
-        $link = $this->formUrl . $client['title'] . '/';
+        $link = $this->formUrl . $client['code'] . '/';
 
         $links = [];
         foreach ($contactIds as $contactId) {

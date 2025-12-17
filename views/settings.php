@@ -87,19 +87,33 @@ $client = $clientRepository->getByDomain($_REQUEST['DOMAIN']);
     </div>
 
     <form id="settings-form">
-        <input type="hidden" name="DOMAIN" value="<?= htmlspecialchars($_REQUEST['DOMAIN']) ?>" />
+        <input type="hidden" name="domain" value="<?= htmlspecialchars($_REQUEST['DOMAIN']) ?>" />
 
         <div class="b24-form-group">
             <label for="title" class="b24-form-label">
-                Идентификатор компании для ссылок
+                Название компании в форме
             </label>
             <input
                     id="title"
                     class="b24-input"
                     type="text"
                     name="title"
-                    placeholder="например: my-company"
+                    placeholder="например: Моя компания"
                     value="<?= htmlspecialchars($client['title'] ?? '') ?>"
+            />
+        </div>
+
+        <div class="b24-form-group">
+            <label for="code" class="b24-form-label">
+                Идентификатор компании для ссылок
+            </label>
+            <input
+                    id="code"
+                    class="b24-input"
+                    type="text"
+                    name="code"
+                    placeholder="например: my-company"
+                    value="<?= htmlspecialchars($client['code'] ?? '') ?>"
             />
         </div>
 

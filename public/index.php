@@ -2,7 +2,6 @@
 declare(strict_types=1);
 
 use App\Controllers\SettingsController;
-use App\Repositories\ClientRepository;
 use App\Services\B24Service;
 use App\Services\LinkService;
 use App\Support\Container;
@@ -61,7 +60,7 @@ try {
             }
             break;
 
-        // https://crm-reviews.ru/r/forsite/AGCLKKjyprFI09iRISNaY8GbG3nLkV1hoNiVCjMYOMMMgi6uds_h-FUsNq8/
+        // https://crm-reviews.ru/r/forsait/dtglOIcwpapZYDHJMZ9uQH4lZ7k/
 
         case '/test':
             phpinfo();

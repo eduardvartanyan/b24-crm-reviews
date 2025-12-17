@@ -24,12 +24,13 @@ class ClientRepository
     {
         try {
             $stmt = $this->pdo->prepare("
-                INSERT INTO clients (domain, title, app_sid) 
-                VALUES (:domain, :title, :app_sid);
+                INSERT INTO clients (domain, code, title, app_sid) 
+                VALUES (:domain, :code, :title, :app_sid);
             ");
             $stmt->execute([
                 ':domain'  => $values['domain'],
-                ':title'   => $values['title'],
+                ':code'   => $values['code'],
+                ':title'   => $values['code'],
                 ':app_sid' => $values['app_sid'],
             ]);
 
@@ -65,6 +66,20 @@ class ClientRepository
                 '[ClientRepository->getByDomain] Error selecting from clients -> ' . $e->getMessage()
             );
         }
+    }
+
+    public function updateCodeByDomain(string $domain, string $code): void
+    {
+        $stmt = $this->pdo->prepare("
+            UPDATE clients
+            SET code = :code
+            WHERE domain = :domain
+        ");
+
+        $stmt->execute([
+            ':code'  => $code,
+            ':domain' => $domain,
+        ]);
     }
 
     public function updateTitleByDomain(string $domain, string $title): void
