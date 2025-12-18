@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Repositories\ClientRepository;
+use App\Support\Logger;
 use Exception;
 
 readonly class LinkService
@@ -14,7 +15,7 @@ readonly class LinkService
         private string           $formUrl
     ) { }
 
-    public function getDealReviewLinks(int $dealId, string $domain): ?array
+    public function generateReviewLinks(int $dealId, string $domain): ?array
     {
         $contactIds = $this->b24Service->getDealContactIds($dealId);
         $client = $this->clientRepository->getByDomain($domain);
@@ -28,6 +29,26 @@ readonly class LinkService
         }
 
         return $links;
+    }
+
+    public function sendReviewLinks(int $dealId): void
+    {
+        $reviewLinks = $this->generateReviewLinks($dealId, $_REQUEST['auth']['domain']);
+
+        $url = $_REQUEST['auth']['client_endpoint'] . 'bizproc.event.send.json?' . http_build_query([
+                'auth' => $_REQUEST['auth']['access_token'],
+                'event_token' => $_REQUEST['event_token'],
+                'return_values' => [
+                    'link' => $reviewLinks,
+                ]
+            ]);
+        $result = file_get_contents($url);
+
+        Logger::info('Responded review links', [
+            'request'  => $_REQUEST,
+            'response' => $url,
+            'result'   => $result,
+        ]);
     }
 
     private function encodeParams(int $dealId, int $contactId): string

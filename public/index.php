@@ -18,7 +18,6 @@ $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 try {
     /** @var Container $container */
 
-    // https://crm-reviews.ru/r/forsait/dtglOIcwpapZYDHJMZ9uQH4lZ7k/
     if (
         $method === 'GET'
         && preg_match('#^/r/([^/]+)/([^/]+)/?$#', $uri, $matches)
@@ -40,7 +39,7 @@ try {
         case '/activities/getreviewlinks':
             if ($method === 'POST') {
                 $linkController = $container->get(LinkController::class);
-                $linkController->getReviewLinks();
+                $linkController->sendReviewLinks();
             }
             break;
 
