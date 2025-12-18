@@ -4,10 +4,7 @@ declare(strict_types=1);
 use App\Controllers\LinkController;
 use App\Controllers\ReviewController;
 use App\Controllers\SettingsController;
-use App\Services\B24Service;
-use App\Services\LinkService;
 use App\Support\Container;
-use App\Support\Logger;
 
 require_once __DIR__ . '/../vendor/autoload.php';
 require_once __DIR__ . '/../public/bootstrap.php';

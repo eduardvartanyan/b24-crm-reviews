@@ -2,9 +2,6 @@
 
 namespace App\Controllers;
 
-use App\Repositories\ClientRepository;
-use App\Repositories\ReviewRepository;
-use App\Services\B24Service;
 use App\Services\LinkService;
 use App\Services\ReviewService;
 
