@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 
+use App\Controllers\LinkController;
 use App\Controllers\ReviewController;
 use App\Controllers\SettingsController;
 use App\Repositories\ClientRepository;
@@ -37,3 +38,4 @@ $container->set(ReviewController::class,   fn() => new ReviewController(
     $container->get(LinkService::class),
     $container->get(ReviewService::class)
 ));
+$container->set(LinkController::class,     fn() => new LinkController($container->get(LinkService::class)));
