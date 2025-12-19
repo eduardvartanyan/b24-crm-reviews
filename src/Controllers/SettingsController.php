@@ -42,6 +42,13 @@ class SettingsController
             return;
         }
 
+        $client = $this->clientRepository->getByCode($code);
+        if (isset($client) && $client['domain'] !== $domain) {
+            http_response_code(400);
+            echo json_encode(['error' => "Код $code занят, укажите другой"]);
+            return;
+        }
+
         if ($webhook === '') {
             http_response_code(400);
             echo json_encode(['error' => 'Заполните ссылку на вебхук']);
