@@ -20,9 +20,9 @@ class SettingsController
         header('Content-Type: application/json; charset=utf-8');
 
         $domain  = $_REQUEST['domain'] ?? null;
-        $code    = trim($_REQUEST['code'] ?? '');
-        $title   = trim($_REQUEST['title'] ?? '');
-        $webhook = trim($_REQUEST['webhook'] ?? '');
+        $code    = mb_strtolower(trim($_REQUEST['code'])) ?? '';
+        $title   = trim($_REQUEST['title']) ?? '';
+        $webhook = trim($_REQUEST['webhook']) ?? '';
 
         if (!$domain) {
             http_response_code(400);
