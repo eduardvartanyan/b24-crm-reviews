@@ -1,10 +1,6 @@
 <?php
 declare(strict_types=1);
 
-// https://crm-reviews.ru/migration.php
-// https://b24-portal.ru/rest/3096/okhnn3g7bn8wuro4/
-// https://b24-d6ekuu.bitrix24.ru/rest/10/nj6eris8jqvh4626/
-
 use Bitrix24\SDK\Core\Exceptions\BaseException;
 use Bitrix24\SDK\Core\Exceptions\InvalidArgumentException;
 use Bitrix24\SDK\Core\Exceptions\TransportException;
@@ -14,8 +10,12 @@ use Bitrix24\SDK\Services\CRM\Common\Result\SystemFields\Types\Phone;
 use Bitrix24\SDK\Services\CRM\Common\Result\SystemFields\Types\Website;
 use Bitrix24\SDK\Services\ServiceBuilder;
 use Bitrix24\SDK\Services\ServiceBuilderFactory;
+use Dotenv\Dotenv;
 
 require_once __DIR__ . '/../vendor/autoload.php';
+
+$dotenv = Dotenv::createImmutable(__DIR__ . '/..');
+$dotenv->load();
 
 class Migrator
 {
@@ -876,16 +876,14 @@ class Migrator
 }
 
 
-
-$webhookArt = 'https://b24-portal.ru/rest/3096/okhnn3g7bn8wuro4/';
-$webhookOpt = 'https://b24-d6ekuu.bitrix24.ru/rest/10/nj6eris8jqvh4626/';
-
-$dealsFilter = [
-    'CATEGORY_ID' => [1, 5],
-];
-
 try {
-    $migrator = new Migrator($webhookArt, $webhookOpt, $dealsFilter);
+    $migrator = new Migrator(
+        $_ENV['MGR_WH_FROM'],
+        $_ENV['MGR_WH_TO'],
+        [
+            'CATEGORY_ID' => [1, 5],
+        ]
+    );
     $migrator->migrate();
 } catch (Throwable $e) {
     echo $e->getMessage();
