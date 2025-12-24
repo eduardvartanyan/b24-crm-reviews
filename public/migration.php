@@ -201,7 +201,7 @@ class Migrator
         for ($i = ($part - 1) * 25; $i < $part * 25; $i++) {
             $deal = $deals[$i];
 
-            echo PHP_EOL . PHP_EOL . ($i * $part + 1) . ') Переносим сделку ID ' . $deal->ID;
+            echo PHP_EOL . PHP_EOL . $i . ') Переносим сделку ID ' . $deal->ID;
 
             if ($deal->LEAD_ID) {
                 $this->getLeadId($deal->LEAD_ID);
@@ -449,7 +449,7 @@ class Migrator
         $rows = [];
 
         foreach ($this->b24From->core->call("crm.$entityCode.productrows.get", [
-                'id' => $idFrom,
+            'id' => $idFrom,
         ])->getResponseData()->getResult() as $row) {
             $productId = $this->getProductId([
                 'iblockId' => $this->productIblockId,
