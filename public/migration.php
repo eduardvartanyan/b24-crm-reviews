@@ -201,7 +201,7 @@ class Migrator
         for ($i = ($part - 1) * 25; $i < $part * 25; $i++) {
             $deal = $deals[$i];
 
-            echo PHP_EOL . PHP_EOL . ($i * $part + 1) . ') Переносим сделку ID ' . $deal->ID;
+            echo PHP_EOL . PHP_EOL . $i . ') Переносим сделку ID ' . $deal->ID;
 
             $fields = [
                 'TITLE'                => $deal->TITLE,
@@ -815,6 +815,8 @@ class Migrator
      */
     private function migrateAddress(int $entityTypeId, int $idFrom, int $idTo): void
     {
+        $sourceAddresses = [];
+        $sourceTypeIds = [];
         foreach ($this->b24From->getCRMScope()->address()->list(
             [],
             [
@@ -825,6 +827,51 @@ class Migrator
         )->getAddresses() as $address) {
             $addressData = iterator_to_array($address);
             $typeId = isset($addressData['TYPE_ID']) ? (int) $addressData['TYPE_ID'] : 0;
+            if ($typeId <= 0) {
+                continue;
+            }
+            $sourceTypeIds[$typeId] = true;
+            $sourceAddresses[] = $address;
+        }
+
+        if ($sourceTypeIds === []) {
+            return;
+        }
+
+        $existingAddresses = $this->b24To->getCRMScope()->address()->list(
+            [],
+            [
+                'ENTITY_TYPE_ID' => $entityTypeId,
+                'ENTITY_ID' => $idTo,
+            ],
+            ['TYPE_ID']
+        )->getAddresses();
+
+        foreach ($existingAddresses as $existingAddress) {
+            $existingData = iterator_to_array($existingAddress);
+            $existingTypeId = isset($existingData['TYPE_ID']) ? (int) $existingData['TYPE_ID'] : 0;
+            if ($existingTypeId > 0 && isset($sourceTypeIds[$existingTypeId])) {
+                try {
+                    $this->b24To->getCRMScope()->address()->delete(
+                        $existingTypeId,
+                        $entityTypeId,
+                        $idTo
+                    );
+                    echo PHP_EOL . 'Удален адрес';
+                } catch (BaseException | TransportException $exception) {
+                    // If deletion fails, add will likely fail too; skip to avoid a hard stop.
+                    continue;
+                }
+            }
+        }
+
+        $seenTypeIds = [];
+        foreach ($sourceAddresses as $address) {
+            $addressData = iterator_to_array($address);
+            $typeId = isset($addressData['TYPE_ID']) ? (int) $addressData['TYPE_ID'] : 0;
+            if ($typeId <= 0 || isset($seenTypeIds[$typeId])) {
+                continue;
+            }
             $fields = [
                 'TYPE_ID'        => $typeId,
                 'ENTITY_TYPE_ID' => $address->ENTITY_TYPE_ID,
@@ -841,8 +888,11 @@ class Migrator
             ];
 
             $this->b24To->getCRMScope()->address()->add($fields);
-
             echo PHP_EOL . 'Добавлен адрес';
+
+            if ($typeId > 0) {
+                $seenTypeIds[$typeId] = true;
+            }
         }
     }
 
