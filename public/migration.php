@@ -203,8 +203,9 @@ class Migrator
 
             echo PHP_EOL . PHP_EOL . ($i * $part + 1) . ') Переносим сделку ID ' . $deal->ID;
 
-            $leadId = $deal->LEAD_ID ? $this->getLeadId($deal->LEAD_ID) : null;
-            $companyId = $deal->COMPANY_ID ? $this->getCompanyId($deal->COMPANY_ID) : null;
+            if ($deal->LEAD_ID) {
+                $this->getLeadId($deal->LEAD_ID);
+            }
 
             $fields = [
                 'TITLE'                => $deal->TITLE,
@@ -213,8 +214,7 @@ class Migrator
                 'CURRENCY_ID'          => self::CURRENCY_ID,
                 'OPPORTUNITY'          => $deal->OPPORTUNITY,
                 'TAX_VALUE'            => $deal->TAX_VALUE,
-                'LEAD_ID'              => $leadId,
-                'COMPANY_ID'           => $companyId,
+                'COMPANY_ID'           => $deal->COMPANY_ID ? $this->getCompanyId($deal->COMPANY_ID) : null,
                 'BEGINDATE'            => $deal->BEGINDATE,
                 'CLOSEDATE'            => $deal->CLOSEDATE,
                 'ASSIGNED_BY_ID'       => $this->userIds[$deal->ASSIGNED_BY_ID] ?? 1,
@@ -348,92 +348,96 @@ class Migrator
      * @throws TransportException
      * @throws BaseException
      */
-    private function migrateLead(int $id): int
+    private function migrateLead(int $id): ?int
     {
-        $lead = $this->b24From->getCRMScope()->lead()->get($id)->lead();
+        foreach ($this->b24From->getCRMScope()->lead()->list(
+            [],
+            ['ID' => $id],
+            ['*', 'UF_*']
+        )->getLeads() as $lead) {
+            $fields = [
+                'TITLE'                => $lead->TITLE,
+                'NAME'                 => $lead->NAME,
+                'SECOND_NAME'          => $lead->SECOND_NAME,
+                'LAST_NAME'            => $lead->LAST_NAME,
+                'COMPANY_TITLE'        => $lead->COMPANY_TITLE,
+                'IS_RETURN_CUSTOMER'   => $lead->IS_RETURN_CUSTOMER,
+                'BIRTHDATE'            => $lead->BIRTHDATE,
+                'SOURCE_ID'            => $this->sources[$lead->SOURCE_ID] ?? 'WEBFORM',
+                'SOURCE_DESCRIPTION'   => $lead->SOURCE_DESCRIPTION,
+                'STATUS_ID'            => $this->leadStages[$lead->STATUS_ID] ?? 'NEW',
+                'POST'                 => $lead->POST,
+                'COMMENTS'             => $lead->COMMENTS,
+                'CURRENCY_ID'          => self::CURRENCY_ID,
+                'OPPORTUNITY'          => (float) $lead->OPPORTUNITY,
+                'HAS_PHONE'            => $lead->HAS_PHONE,
+                'HAS_EMAIL'            => $lead->HAS_EMAIL,
+                'HAS_IMOL'             => $lead->HAS_IMOL,
+                'ASSIGNED_BY_ID'       => $this->userIds[$lead->ASSIGNED_BY_ID] ?? 1,
+                'OPENED'               => $lead->OPENED,
+                'MOVED_BY_ID'          => $this->userIds[$lead->MOVED_BY_ID] ?? 1,
+                'MOVED_TIME'           => $lead->MOVED_TIME,
+                'ADDRESS'              => $lead->ADDRESS,
+                'ADDRESS_2'            => $lead->ADDRESS_2,
+                'ADDRESS_CITY'         => $lead->ADDRESS_CITY,
+                'ADDRESS_POSTAL_CODE'  => $lead->ADDRESS_POSTAL_CODE,
+                'ADDRESS_REGION'       => $lead->ADDRESS_REGION,
+                'ADDRESS_PROVINCE'     => $lead->ADDRESS_PROVINCE,
+                'ADDRESS_COUNTRY'      => $lead->ADDRESS_COUNTRY,
+                'ADDRESS_COUNTRY_CODE' => $lead->ADDRESS_COUNTRY_CODE,
+                'ADDRESS_LOC_ADDR_ID'  => $lead->ADDRESS_LOC_ADDR_ID,
+                'UTM_SOURCE'           => $lead->UTM_SOURCE,
+                'UTM_MEDIUM'           => $lead->UTM_MEDIUM,
+                'UTM_CAMPAIGN'         => $lead->UTM_CAMPAIGN,
+                'UTM_CONTENT'          => $lead->UTM_CONTENT,
+                'UTM_TERM'             => $lead->UTM_TERM,
+                'PHONE'                => $lead->PHONE ? $this->preparePhone($lead->PHONE) : [],
+                'EMAIL'                => $lead->EMAIL ? $this->prepareEmail($lead->EMAIL) : [],
+                'WEB'                  => $lead->WEB ? $this->prepareWebsite($lead->WEB) : [],
+                'IM'                   => $lead->IM ? $this->prepareMessenger($lead->IM) : [],
+                'ORIGINATOR_ID'        => 'b24-portal.ru',
+                'ORIGIN_ID'            => $lead->ID,
+                'UF_CRM_1766386781'    => $lead->ID,
+                'UF_CRM_1766377257'    => $lead->getUserfieldByFieldName('UF_CRM_1655880185947'),
+                'UF_CRM_1766378585'    => $lead->getUserfieldByFieldName('UF_CRM_1620590688'),
+            ];
 
-        $fields = [
-            'TITLE'                => $lead->TITLE,
-            'NAME'                 => $lead->NAME,
-            'SECOND_NAME'          => $lead->SECOND_NAME,
-            'LAST_NAME'            => $lead->LAST_NAME,
-            'COMPANY_TITLE'        => $lead->COMPANY_TITLE,
-            'IS_RETURN_CUSTOMER'   => $lead->IS_RETURN_CUSTOMER,
-            'BIRTHDATE'            => $lead->BIRTHDATE,
-            'SOURCE_ID'            => $this->sources[$lead->SOURCE_ID] ?? 'WEBFORM',
-            'SOURCE_DESCRIPTION'   => $lead->SOURCE_DESCRIPTION,
-            'STATUS_ID'            => $this->leadStages[$lead->STATUS_ID] ?? 'NEW',
-            'POST'                 => $lead->POST,
-            'COMMENTS'             => $lead->COMMENTS,
-            'CURRENCY_ID'          => self::CURRENCY_ID,
-            'OPPORTUNITY'          => (float) $lead->OPPORTUNITY,
-            'HAS_PHONE'            => $lead->HAS_PHONE,
-            'HAS_EMAIL'            => $lead->HAS_EMAIL,
-            'HAS_IMOL'             => $lead->HAS_IMOL,
-            'ASSIGNED_BY_ID'       => $this->userIds[$lead->ASSIGNED_BY_ID] ?? 1,
-            'OPENED'               => $lead->OPENED,
-            'MOVED_BY_ID'          => $this->userIds[$lead->MOVED_BY_ID] ?? 1,
-            'MOVED_TIME'           => $lead->MOVED_TIME,
-            'ADDRESS'              => $lead->ADDRESS,
-            'ADDRESS_2'            => $lead->ADDRESS_2,
-            'ADDRESS_CITY'         => $lead->ADDRESS_CITY,
-            'ADDRESS_POSTAL_CODE'  => $lead->ADDRESS_POSTAL_CODE,
-            'ADDRESS_REGION'       => $lead->ADDRESS_REGION,
-            'ADDRESS_PROVINCE'     => $lead->ADDRESS_PROVINCE,
-            'ADDRESS_COUNTRY'      => $lead->ADDRESS_COUNTRY,
-            'ADDRESS_COUNTRY_CODE' => $lead->ADDRESS_COUNTRY_CODE,
-            'ADDRESS_LOC_ADDR_ID'  => $lead->ADDRESS_LOC_ADDR_ID,
-            'UTM_SOURCE'           => $lead->UTM_SOURCE,
-            'UTM_MEDIUM'           => $lead->UTM_MEDIUM,
-            'UTM_CAMPAIGN'         => $lead->UTM_CAMPAIGN,
-            'UTM_CONTENT'          => $lead->UTM_CONTENT,
-            'UTM_TERM'             => $lead->UTM_TERM,
-            'PHONE'                => $lead->PHONE ? $this->preparePhone($lead->PHONE) : [],
-            'EMAIL'                => $lead->EMAIL ? $this->prepareEmail($lead->EMAIL) : [],
-            'WEB'                  => $lead->WEB ? $this->prepareWebsite($lead->WEB) : [],
-            'IM'                   => $lead->IM ? $this->prepareMessenger($lead->IM) : [],
-            'ORIGINATOR_ID'        => 'b24-portal.ru',
-            'ORIGIN_ID'            => $lead->ID,
-            'UF_CRM_1766386781'    => $lead->ID,
-            'UF_CRM_1766377257'    => $lead->getUserfieldByFieldName('UF_CRM_1655880185947'),
-            'UF_CRM_1766378585'    => $lead->getUserfieldByFieldName('UF_CRM_1620590688'),
-        ];
+            $newId = $this->b24To->getCRMScope()->lead()->add($fields)->getId();
 
-        $newId = $this->b24To->getCRMScope()->lead()->add($fields)->getId();
+            $this->migrateProductRows($id, $newId, 'lead');
 
-        echo PHP_EOL . 'Создан лид ' . $newId;
-
-        $this->migrateProductRows($id, $newId, 'lead');
-
-        if ($lead->COMPANY_ID) {
-            $companyId = $this->getCompanyId($lead->COMPANY_ID, $lead->ID);
-            $this->b24To->getCRMScope()->lead()->update($newId, ['COMPANY_ID' => $companyId]);
-        }
-
-        if ($lead->CONTACT_ID) {
-            $contactIds = [];
-            foreach ($this->b24From->core->call(
-                'crm.lead.contact.items.get',
-                [
-                    'id' => $lead->ID,
-                ]
-            )->getResponseData()->getResult() as $contact) {
-                $contactIds[] = [
-                    'CONTACT_ID' => $this->getContactId($contact['CONTACT_ID'], $lead->ID),
-                    'SORT'       => $contact['SORT'],
-                    'IS_PRIMARY' => $contact['IS_PRIMARY'],
-                ];
+            if ($lead->COMPANY_ID) {
+                $companyId = $this->getCompanyId($lead->COMPANY_ID, $newId);
+                $this->b24To->getCRMScope()->lead()->update($newId, ['COMPANY_ID' => $companyId]);
             }
 
-            $this->b24To->core->call('crm.lead.contact.items.set',
-                [
-                    'id'    => $newId,
-                    'items' => $contactIds,
-                ]
-            );
+            if ($lead->CONTACT_ID) {
+                $contactIds = [];
+                foreach ($this->b24From->core->call(
+                    'crm.lead.contact.items.get',
+                    ['id' => $lead->ID]
+                )->getResponseData()->getResult() as $contact) {
+                    $contactIds[] = [
+                        'CONTACT_ID' => $this->getContactId($contact['CONTACT_ID'], $newId),
+                        'SORT'       => $contact['SORT'],
+                        'IS_PRIMARY' => $contact['IS_PRIMARY'],
+                    ];
+                }
+
+                $this->b24To->core->call('crm.lead.contact.items.set',
+                    [
+                        'id'    => $newId,
+                        'items' => $contactIds,
+                    ]
+                );
+            }
+
+            echo PHP_EOL . 'Создан лид ' . $newId;
+
+            return $newId;
         }
 
-        return $newId;
+        return null;
     }
 
     /**
