@@ -32,14 +32,31 @@ readonly class ReviewService
             'comment'   => $comment,
         ]);
 
-        $dealTitle = $this->b24Service->getDealTitleById($dealId);
-        $this->b24Service->addCommentToContact($contactId, "Добавлен отзыв по сделке <a href='/crm/deal/details/$dealId/'>$dealTitle</a>.
-Оценка: $rating
-Комментарий: $comment");
 
-        $contactName = $this->b24Service->getContactTitleById($contactId);
-        $this->b24Service->addCommentToDeal($dealId, "<a href='/crm/contact/details/$contactId/'>$contactName</a> добавил отзыв.
+        $dealAssignedBy = 0;
+        if ($deal = $this->b24Service->getDealById($dealId)) {
+            $anchor = $deal['title'];
+            $text = "Добавлен отзыв по сделке <a href='/crm/deal/details/$dealId/'>$anchor</a>.
 Оценка: $rating
-Комментарий: $comment");
+Комментарий: $comment";
+            $this->b24Service->addCommentToContact($contactId, $text);
+
+            if ($client['notify'] === 'Y') {
+                $this->b24Service->notify($deal['assigned_by'], $text);
+                $dealAssignedBy = $deal['assigned_by'];
+            }
+        }
+
+        if ($contact = $this->b24Service->getContactById($contactId)) {
+            $anchor = $contact['name'];
+            $text = "<a href='/crm/contact/details/$contactId/'>$anchor</a> добавил отзыв.
+Оценка: $rating
+Комментарий: $comment";
+            $this->b24Service->addCommentToDeal($dealId, $text);
+
+            if ($dealAssignedBy > 0 && $dealAssignedBy !== $contact['assigned_by']) {
+                $this->b24Service->notify($contact['assigned_by'], $text);
+            }
+        }
     }
 }

@@ -15,9 +15,12 @@ readonly class LinkService
         private string           $formUrl
     ) { }
 
-    public function generateReviewLinks(int $dealId, string $domain): ?array
+    public function generateReviewLinks(int $dealId, string $domain): array
     {
         $contactIds = $this->b24Service->getDealContactIds($dealId);
+
+        if (empty($contactIds)) return [];
+
         $client = $this->clientRepository->getByDomain($domain);
 
         $link = $this->formUrl . $client['code'] . '/';

@@ -138,5 +138,17 @@ class ClientRepository
         ]);
     }
 
+    public function updateNotifyByDomain(string $domain, string $notify): void
+    {
+        $stmt = $this->pdo->prepare("
+            UPDATE clients
+            SET notify = :notify
+            WHERE domain = :domain
+        ");
 
+        $stmt->execute([
+            ':notify' => $notify,
+            ':domain'   => $domain,
+        ]);
+    }
 }

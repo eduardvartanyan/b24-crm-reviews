@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Repositories\ClientRepository;
+use App\Support\Logger;
 
 class SettingsController
 {
@@ -23,6 +24,7 @@ class SettingsController
         $code    = mb_strtolower(trim($_REQUEST['code'])) ?? '';
         $title   = trim($_REQUEST['title']) ?? '';
         $webhook = trim($_REQUEST['webhook']) ?? '';
+        $notify = (!empty($_REQUEST['notify']) && $_REQUEST['notify'] === 'Y') ? 'Y' : 'N';
 
         if (!$domain) {
             http_response_code(400);
@@ -55,9 +57,11 @@ class SettingsController
             return;
         }
 
+        // Todo: Заменить на один метод
         $this->clientRepository->updateCodeByDomain($domain, $code);
         $this->clientRepository->updateTitleByDomain($domain, $title);
         $this->clientRepository->updateWebhookByDomain($domain, $webhook);
+        $this->clientRepository->updateNotifyByDomain($domain, $notify);
 
         http_response_code(200);
         echo json_encode(['status' => 'OK']);

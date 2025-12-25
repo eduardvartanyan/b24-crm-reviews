@@ -98,6 +98,51 @@ $client = $clientRepository->getByDomain($domain);
         font-weight: 400;
     }
 
+    .b24-checkbox {
+        display: flex;
+        align-items: flex-start;
+        cursor: pointer;
+        gap: 10px;
+    }
+
+    .b24-checkbox input {
+        display: none;
+    }
+
+    .b24-checkbox-box {
+        width: 16px;
+        height: 16px;
+        border: 1px solid #cfd4d9;
+        border-radius: 3px;
+        background: #fff;
+        position: relative;
+        flex-shrink: 0;
+        transition: background .15s, border-color .15s;
+    }
+
+    .b24-checkbox input:checked + .b24-checkbox-box {
+        background: #2fc6f6;
+        border-color: #2fc6f6;
+    }
+
+    .b24-checkbox input:checked + .b24-checkbox-box::after {
+        content: '';
+        position: absolute;
+        left: 6px;
+        top: 3px;
+        width: 3px;
+        height: 7px;
+        border: solid #fff;
+        border-width: 0 2px 2px 0;
+        transform: rotate(45deg);
+    }
+
+    .b24-checkbox-label {
+        font-size: 13px;
+        line-height: 1.4;
+        color: #2f343b;
+    }
+
     .b24-form-hint {
         margin-top: 6px;
         font-size: 12px;
@@ -338,6 +383,25 @@ $client = $clientRepository->getByDomain($domain);
                         <div class="b24-form-hint">
                             Используется в ссылке на отзыв вида <code>https://crm-reviews.ru/r/my-company/</code>.
                             Только латиница, цифры и дефис
+                        </div>
+                    </div>
+
+                    <div class="b24-form-group">
+                        <label class="b24-checkbox">
+                            <input
+                                type="checkbox"
+                                name="notify"
+                                value="Y"
+                                <?= $client['notify'] === 'Y' ? 'checked' : '' ?>
+                            />
+                            <span class="b24-checkbox-box"></span>
+                            <span class="b24-checkbox-label">
+                                Отправлять уведомление в чат о новом отзыве
+                            </span>
+                        </label>
+
+                        <div class="b24-form-hint">
+                            При добавлении отзыва будут отправлены уведомления в чат отвественным за контакт и сделку
                         </div>
                     </div>
 
