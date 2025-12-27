@@ -343,7 +343,7 @@ $client = $clientRepository->getByDomain($domain);
                                 Другое
                             </a>
                         </span>.
-                            Установите права <span class="b24-chip">CRM</span>.
+                            Установите права <span class="b24-chip">CRM (crm)</span>, <span class="b24-chip">Чат и уведомления (im)</span>.
                             Скопируйте значение поля <span class="b24-field-name">Вебхук для вызова REST API</span>
                         </div>
                     </div>
