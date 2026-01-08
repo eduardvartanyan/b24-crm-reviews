@@ -160,6 +160,40 @@ class Migrator
         '50' => 410,
         '53' => 418,
     ];
+    private array $workTypes = [
+        '616' => 648,
+        '617' => 650,
+        '618' => 652,
+        '619' => 654,
+        '620' => 656,
+        '621' => 658,
+        '622' => 660,
+        '693' => 662,
+        '694' => 664,
+        '695' => 666,
+    ];
+    private array $transportTypes = [
+        '623' => 668,
+        '624' => 670,
+        '625' => 672,
+        '626' => 674,
+        '627' => 676,
+        '628' => 678,
+        '629' => 680,
+    ];
+    private array $transportBrands = [
+        '696' => 682,
+        '697' => 684,
+        '698' => 686,
+        '699' => 688,
+        '700' => 690,
+    ];
+    private array $clientGrades = [
+        '701' => 640,
+        '702' => 642,
+        '703' => 644,
+        '704' => 646,
+    ];
     private array $dealsFilter;
     private ServiceBuilder $b24From;
     private ServiceBuilder $b24To;
@@ -185,7 +219,7 @@ class Migrator
      * @throws TransportException
      * @throws BaseException
      */
-    public function migrateDeals($page, $part): void
+    public function migrateDeals(int $page, int $part): void
     {
         echo '<pre>';
         $count = $this->getDealsCount();
@@ -314,7 +348,7 @@ class Migrator
      * @throws TransportException
      * @throws BaseException
      */
-    public function migrateLeads(array $filter, $page, $part): void
+    public function migrateLeads(array $filter, int $page, int $part): void
     {
         echo '<pre>';
         $count = $this->b24From->getCRMScope()->lead()->countByFilter($filter);
@@ -331,6 +365,30 @@ class Migrator
             if (!$leads[$i]->ID) die;
 
             $this->migrateLead($leads[$i]->ID);
+        }
+    }
+
+    /**
+     * @throws TransportException
+     * @throws BaseException
+     */
+    public function updateContacts(int $page): void
+    {
+        echo '<pre>';
+        $count = $this->b24To->getCRMScope()->contact()->countByFilter();
+        echo 'Всего контактов: ' . $count . PHP_EOL;
+
+        foreach ($this->b24To->getCRMScope()->contact()->list(
+            [],
+            [],
+            ['ID'],
+            ($page - 1) * 50
+        )->getContacts() as $contact) {
+            if (!$contact->ID) die;
+
+            echo $contact->ID . ' - ';
+
+            $this->updateContact($contact->ID);
         }
     }
 
@@ -890,6 +948,64 @@ class Migrator
         }
     }
 
+    /**
+     * @throws TransportException
+     * @throws BaseException
+     */
+    private function updateContact($id): void
+    {
+        foreach ($this->b24To->getCRMScope()->contact()->list(
+            [],
+            ['ID' => $id],
+            ['NAME', 'LAST_NAME', 'SECOND_NAME'],
+            0
+        )->getContacts() as $contact) {
+            echo $contact->LAST_NAME . ' ' . $contact->NAME . ' ' . $contact->SECOND_NAME . ' - ';
+
+            foreach ($this->b24From->getCRMScope()->contact()->list(
+                [],
+                [
+                    'LAST_NAME' => $contact->LAST_NAME,
+                    'NAME' => $contact->NAME,
+                    'SECOND_NAME' => $contact->SECOND_NAME
+                ],
+                ['*', 'UF_*'],
+                0
+            )->getContacts() as $item) {
+                $workType         = $item->getUserfieldByFieldName('UF_CRM_1748963459285') ? $this->prepareMultiUserField($item->getUserfieldByFieldName('UF_CRM_1748963459285'), $this->workTypes) : false;
+                $transportType    = $item->getUserfieldByFieldName('UF_CRM_1748963667349') ? $this->prepareMultiUserField($item->getUserfieldByFieldName('UF_CRM_1748963667349'), $this->transportTypes) : false;
+                $inStock          = $item->getUserfieldByFieldName('UF_CRM_1748963727117');
+                $optodiagProducts = $item->getUserfieldByFieldName('UF_CRM_1748963778708');
+                $transportBrand   = $item->getUserfieldByFieldName('UF_CRM_1751724478550') ? $this->prepareMultiUserField($item->getUserfieldByFieldName('UF_CRM_1751724478550'), $this->transportBrands) : false;
+                $clientGrade      = $this->clientGrades[$item->getUserfieldByFieldName('UF_CRM_1751724556654')] ?? '';
+
+                if (
+                    $workType !== false
+                    || $transportType !== false
+                    || $inStock
+                    || $optodiagProducts
+                    || $transportBrand !== false
+                    || $clientGrade !== ''
+                ) {
+                    $result = $this->b24To->getCRMScope()->contact()->update($id, [
+                        'UF_CRM_1767852013' => $workType,
+                        'UF_CRM_1767852159' => $transportType,
+                        'UF_CRM_1767848097' => $inStock,
+                        'UF_CRM_1767848117' => $optodiagProducts,
+                        'UF_CRM_1767852279' => $transportBrand,
+                        'UF_CRM_1767848206' => $clientGrade,
+                    ])->isSuccess() ? 'OK' : 'ERROR';
+
+                    echo $item->ID . ' - ' . $result . PHP_EOL;
+                    break;
+                }
+
+                echo $item->ID . ' - NO DATA' . PHP_EOL;
+                break;
+            }
+        }
+    }
+
     /** @var Phone[] $phone */
     private function preparePhone(array $phone): array
     {
@@ -949,12 +1065,23 @@ class Migrator
 
         return $result;
     }
+
+    private function prepareMultiUserField(array $values, array $convertArray): array
+    {
+        $result = [];
+
+        foreach ($values as $value) {
+            $result[] = $convertArray[$value] ?? [];
+        }
+
+        return $result;
+    }
 }
 
 // https://crm-reviews.ru/migration.php?page=1&part=1
 
-$page = $_GET['page'] ?? 1;
-$part = $_GET['part'] ?? 1;
+$page = (int) $_GET['page'] ?? 1;
+$part = (int) $_GET['part'] ?? 1;
 
 try {
     $migrator = new Migrator(
@@ -966,10 +1093,14 @@ try {
     );
 //    $migrator->migrateDeals($page, $part);
 //    $migrator->migrateLeads(
-//        ['STATUS_ID' => ['NEW', 'UC_I1FS88', 'UC_PZYPHR', '1', '3']],
+//        [
+//            'STATUS_ID' => ['NEW', 'UC_I1FS88', 'UC_PZYPHR', '1', '3'],
+//            '>ID' => 14199,
+//        ],
 //        $page,
 //        $part
 //    );
+//    $migrator->updateContacts($page);
 } catch (Throwable $e) {
     echo PHP_EOL . print_r([
         'file'    => $e->getFile(),
