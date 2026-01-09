@@ -396,6 +396,30 @@ class Migrator
      * @throws TransportException
      * @throws BaseException
      */
+    public function updateCompanies(int $page): void
+    {
+        echo '<pre>';
+        $count = $this->b24To->getCRMScope()->company()->countByFilter();
+        echo 'Всего компаний: ' . $count . PHP_EOL;
+
+        foreach ($this->b24To->getCRMScope()->company()->list(
+            [],
+            [],
+            ['ID'],
+            ($page - 1) * 50
+        )->getCompanies() as $company) {
+            if (!$company->ID) die;
+
+            echo $company->ID . ' - ';
+
+            $this->updateCompany($company->ID);
+        }
+    }
+
+    /**
+     * @throws TransportException
+     * @throws BaseException
+     */
     private function getDealsCount(): int
     {
         return $this->b24From->getCRMScope()->deal()->countByFilter($this->dealsFilter);
@@ -975,38 +999,79 @@ class Migrator
                     'NAME' => $contact->NAME,
                     'SECOND_NAME' => $contact->SECOND_NAME
                 ],
-                ['*', 'UF_*'],
+                ['*', 'UF_*', 'PHONE', 'EMAIL', 'WEB', 'IM'],
                 0
             )->getContacts() as $item) {
-                $workType         = $item->getUserfieldByFieldName('UF_CRM_1748963459285') ? $this->prepareMultiUserField($item->getUserfieldByFieldName('UF_CRM_1748963459285'), $this->workTypes) : false;
-                $transportType    = $item->getUserfieldByFieldName('UF_CRM_1748963667349') ? $this->prepareMultiUserField($item->getUserfieldByFieldName('UF_CRM_1748963667349'), $this->transportTypes) : false;
-                $inStock          = $item->getUserfieldByFieldName('UF_CRM_1748963727117');
-                $optodiagProducts = $item->getUserfieldByFieldName('UF_CRM_1748963778708');
-                $transportBrand   = $item->getUserfieldByFieldName('UF_CRM_1751724478550') ? $this->prepareMultiUserField($item->getUserfieldByFieldName('UF_CRM_1751724478550'), $this->transportBrands) : false;
-                $clientGrade      = $this->clientGrades[$item->getUserfieldByFieldName('UF_CRM_1751724556654')] ?? '';
+                $result = $this->b24To->getCRMScope()->contact()->update($id, [
+                    'PHONE' => $item->PHONE ? $this->preparePhone($item->PHONE) : [],
+                    'EMAIL' => $item->EMAIL ? $this->prepareEmail($item->EMAIL) : [],
+                    'WEB'   => $item->WEB ? $this->prepareWebsite($item->WEB) : [],
+                    'IM'    => $item->IM ? $this->prepareMessenger($item->IM) : [],
+                ])->isSuccess() ? 'OK' : 'ERROR';
 
-                if (
-                    $workType !== false
-                    || $transportType !== false
-                    || $inStock
-                    || $optodiagProducts
-                    || $transportBrand !== false
-                    || $clientGrade !== ''
-                ) {
-                    $result = $this->b24To->getCRMScope()->contact()->update($id, [
-                        'UF_CRM_1767852013' => $workType,
-                        'UF_CRM_1767852159' => $transportType,
-                        'UF_CRM_1767848097' => $inStock,
-                        'UF_CRM_1767848117' => $optodiagProducts,
-                        'UF_CRM_1767852279' => $transportBrand,
-                        'UF_CRM_1767848206' => $clientGrade,
-                    ])->isSuccess() ? 'OK' : 'ERROR';
+                echo $item->ID . ' - ' . $result . PHP_EOL;
 
-                    echo $item->ID . ' - ' . $result . PHP_EOL;
-                    break;
-                }
+//                $workType         = $item->getUserfieldByFieldName('UF_CRM_1748963459285') ? $this->prepareMultiUserField($item->getUserfieldByFieldName('UF_CRM_1748963459285'), $this->workTypes) : false;
+//                $transportType    = $item->getUserfieldByFieldName('UF_CRM_1748963667349') ? $this->prepareMultiUserField($item->getUserfieldByFieldName('UF_CRM_1748963667349'), $this->transportTypes) : false;
+//                $inStock          = $item->getUserfieldByFieldName('UF_CRM_1748963727117');
+//                $optodiagProducts = $item->getUserfieldByFieldName('UF_CRM_1748963778708');
+//                $transportBrand   = $item->getUserfieldByFieldName('UF_CRM_1751724478550') ? $this->prepareMultiUserField($item->getUserfieldByFieldName('UF_CRM_1751724478550'), $this->transportBrands) : false;
+//                $clientGrade      = $this->clientGrades[$item->getUserfieldByFieldName('UF_CRM_1751724556654')] ?? '';
+//
+//                if (
+//                    $workType !== false
+//                    || $transportType !== false
+//                    || $inStock
+//                    || $optodiagProducts
+//                    || $transportBrand !== false
+//                    || $clientGrade !== ''
+//                ) {
+//                    $result = $this->b24To->getCRMScope()->contact()->update($id, [
+//                        'UF_CRM_1767852013' => $workType,
+//                        'UF_CRM_1767852159' => $transportType,
+//                        'UF_CRM_1767848097' => $inStock,
+//                        'UF_CRM_1767848117' => $optodiagProducts,
+//                        'UF_CRM_1767852279' => $transportBrand,
+//                        'UF_CRM_1767848206' => $clientGrade,
+//                    ])->isSuccess() ? 'OK' : 'ERROR';
+//
+//                    echo $item->ID . ' - ' . $result . PHP_EOL;
+//                    break;
+//                }
+//
+//                echo $item->ID . ' - NO DATA' . PHP_EOL;
+                break;
+            }
+        }
+    }
 
-                echo $item->ID . ' - NO DATA' . PHP_EOL;
+    /**
+     * @throws TransportException
+     * @throws BaseException
+     */
+    private function updateCompany($id): void
+    {
+        foreach ($this->b24To->getCRMScope()->company()->list(
+            [],
+            ['ID' => $id],
+            ['TITLE']
+        )->getCompanies() as $company) {
+            echo $company->TITLE . ' - ';
+
+            foreach ($this->b24From->getCRMScope()->company()->list(
+                [],
+                ['TITLE' => $company->TITLE],
+                ['ID', 'PHONE', 'EMAIL', 'WEB', 'IM'],
+                0
+            )->getCompanies() as $item) {
+                $result = $this->b24To->getCRMScope()->company()->update($id, [
+                    'PHONE' => $item->PHONE ? $this->preparePhone($item->PHONE) : [],
+                    'EMAIL' => $item->EMAIL ? $this->prepareEmail($item->EMAIL) : [],
+                    'WEB'   => $item->WEB ? $this->prepareWebsite($item->WEB) : [],
+                    'IM'    => $item->IM ? $this->prepareMessenger($item->IM) : [],
+                ])->isSuccess() ? 'OK' : 'ERROR';
+
+                echo $item->ID . ' - ' . $result . PHP_EOL;
                 break;
             }
         }
@@ -1106,7 +1171,8 @@ try {
 //        $page,
 //        $part
 //    );
-    $migrator->updateContacts($page);
+//    $migrator->updateContacts($page);
+//    $migrator->updateCompanies($page);
 } catch (Throwable $e) {
     echo PHP_EOL . print_r([
         'file'    => $e->getFile(),
