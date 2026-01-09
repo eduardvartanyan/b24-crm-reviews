@@ -85,6 +85,11 @@ class Migrator
         'C5:LOSE'               => 'C2:LOSE',
         'C5:APOLOGY'            => 'C2:APOLOGY',
         'C5:UC_1Q10H9'          => 'C2:UC_X2IEBQ',
+
+        'DT1048_19:NEW'         => 'C6:NEW',
+        'DT1048_19:PREPARATION' => 'C6:PREPARATION',
+        'DT1048_19:FAIL'        => 'C6:LOSE',
+        'DT1048_19:SUCCESS'     => 'C6:WON',
     ];
     private array $userIds = [
         '845' => 1,
@@ -193,6 +198,40 @@ class Migrator
         '702' => 642,
         '703' => 644,
         '704' => 646,
+    ];
+    private array $logisticTypes = [
+        '648' => 692,
+        '646' => 694,
+        '645' => 696,
+        '647' => 698,
+        '649' => 700,
+        '650' => 702,
+    ];
+    private $suppliers = [
+        '670'  => 704,
+        '671'  => 706,
+        '672'  => 708,
+        '673'  => 710,
+        '674'  => 712,
+        '675'  => 714,
+        '676'  => 716,
+        '677'  => 718,
+        '678'  => 720,
+        '679'  => 722,
+        '680'  => 724,
+        '681'  => 726,
+        '682'  => 728,
+        '683'  => 730,
+        '686'  => 732,
+        '687'  => 734,
+        '688'  => 736,
+        '689'  => 738,
+        '690'  => 740,
+        '691'  => 742,
+        '692'  => 744,
+        '1678' => 746,
+        '1679' => 748,
+        '1680' => 750,
     ];
     private array $dealsFilter;
     private ServiceBuilder $b24From;
@@ -413,6 +452,49 @@ class Migrator
             echo $company->ID . ' - ';
 
             $this->updateCompany($company->ID);
+        }
+    }
+
+    /**
+     * @throws TransportException
+     * @throws BaseException
+     */
+    public function migrateDynamicItems(int $entityTypeId, int $page): void
+    {
+        echo '<pre>';
+        $count = $this->b24From->getCRMScope()->item()->countByFilter($entityTypeId);
+        echo 'Всего элементов: ' . $count . PHP_EOL;
+
+        foreach ($this->b24From->getCRMScope()->item()->list(
+            $entityTypeId,
+            [],
+            [],
+            ['*', 'UF_*'],
+            ($page - 1) * 50
+        )->getItems() as $item) {
+
+            $opportunityString = $item->ufCrm13_1749148023650[0];
+            $opportunityArray = explode('|', $opportunityString);
+
+            $fields = [
+                'TITLE'                => $item->title,
+                'CATEGORY_ID'          => 6,
+                'STAGE_ID'             => $this->dealStages[$item->stageId] ?? 'C6:NEW',
+                'CURRENCY_ID'          => $opportunityArray[1],
+                'OPPORTUNITY'          => $opportunityArray[0],
+                'BEGINDATE'            => $item->begindate,
+                'CLOSEDATE'            => $item->closedate,
+                'ASSIGNED_BY_ID'       => $this->userIds[$item->assignedById] ?? 1,
+                'OPENED'               => $item->opened,
+                'ORIGINATOR_ID'        => 'b24-portal.ru',
+                'ORIGIN_ID'            => $item->id,
+                'UF_CRM_6948EC6B4508B' => $item->id,
+                'UF_CRM_1767947844'    => $this->logisticTypes[$item->ufCrm13_1749148163765] ?? '',
+                'UF_CRM_1767948053'    => $this->suppliers[$item->ufCrm13_1750747885261] ?? '',
+            ];
+
+            $id = $this->b24To->getCRMScope()->deal()->add($fields)->getId();
+            echo PHP_EOL . 'Добавлена сделка ' . $id;
         }
     }
 
@@ -1173,6 +1255,7 @@ try {
 //    );
 //    $migrator->updateContacts($page);
 //    $migrator->updateCompanies($page);
+//    $migrator->migrateDynamicItems(1048, $page);
 } catch (Throwable $e) {
     echo PHP_EOL . print_r([
         'file'    => $e->getFile(),
