@@ -459,6 +459,30 @@ class Migrator
      * @throws TransportException
      * @throws BaseException
      */
+    public function updateLeads(int $page): void
+    {
+        echo '<pre>';
+        $count = $this->b24To->getCRMScope()->lead()->countByFilter();
+        echo 'Всего лидов: ' . $count . PHP_EOL;
+
+        foreach ($this->b24To->getCRMScope()->lead()->list(
+            [],
+            [],
+            ['ID'],
+            ($page - 1) * 50
+        )->getLeads() as $lead) {
+            if (!$lead->ID) die;
+
+            echo $lead->ID . ' - ';
+
+            $this->updateLead($lead->ID);
+        }
+    }
+
+    /**
+     * @throws TransportException
+     * @throws BaseException
+     */
     public function migrateDynamicItems(int $entityTypeId, int $page): void
     {
         echo '<pre>';
@@ -1159,6 +1183,37 @@ class Migrator
         }
     }
 
+    /**
+     * @throws TransportException
+     * @throws BaseException
+     */
+    private function updateLead($id): void
+    {
+        foreach ($this->b24To->getCRMScope()->lead()->list(
+            [],
+            ['ID' => $id],
+            ['TITLE']
+        )->getLeads() as $lead) {
+            echo $lead->TITLE . ' - ';
+
+            foreach ($this->b24From->getCRMScope()->lead()->list(
+                [],
+                ['TITLE' => $lead->TITLE],
+                ['ID', 'PHONE', 'EMAIL', 'WEB'],
+                0
+            )->getLeads() as $item) {
+                $result = $this->b24To->getCRMScope()->lead()->update($id, [
+                    'PHONE' => $item->PHONE ? $this->preparePhone($item->PHONE) : [],
+                    'EMAIL' => $item->EMAIL ? $this->prepareEmail($item->EMAIL) : [],
+                    'WEB'   => $item->WEB ? $this->prepareWebsite($item->WEB) : [],
+                ])->isSuccess() ? 'OK' : 'ERROR';
+
+                echo $item->ID . ' - ' . $result . PHP_EOL;
+                break;
+            }
+        }
+    }
+
     /** @var Phone[] $phone */
     private function preparePhone(array $phone): array
     {
@@ -1255,6 +1310,7 @@ try {
 //    );
 //    $migrator->updateContacts($page);
 //    $migrator->updateCompanies($page);
+//    $migrator->updateLeads($page);
 //    $migrator->migrateDynamicItems(1048, $page);
 } catch (Throwable $e) {
     echo PHP_EOL . print_r([
